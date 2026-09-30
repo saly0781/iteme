@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 234 220" width="234" height="220">
+  <title>Animated Iteme Logo</title>
+
+  <style>
+    .piece {
+      fill: #101010;
+      opacity: 0;
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: itemeIn 2.4s cubic-bezier(.22,1,.36,1) infinite;
+    }
+
+    .piece1 { animation-delay: 0s; }
+    .piece2 { animation-delay: .18s; }
+    .piece3 { animation-delay: .36s; }
+
+    @keyframes itemeIn {
+      0% {
+        opacity: 0;
+        transform: translateX(70px) translateY(-8px);
+      }
+      18%, 82% {
+        opacity: 1;
+        transform: translateX(0) translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateX(-20px) translateY(3px);
+      }
+    }
+  </style>
+
+  <g class="piece piece1">
+    <path d="M218 22L81 37V71H218Z"/>
+  </g>
+
+  <g class="piece piece2">
+    <path d="M47 89H167V136L47 122Z"/>
+  </g>
+
+  <g class="piece piece3">
+    <path d="M20 138L118 154L119 202L20 173Z"/>
+  </g>
+</svg>

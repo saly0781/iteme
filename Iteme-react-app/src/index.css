@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dark: #ffffff;
+  --color-darker: #f9f9f9;
+  --color-accent: #000000;
+  --color-light: #1b1b1b;
+  --color-muted: #616363;
+
+  --font-sans: "Sora", sans-serif;
+  --font-serif: "Playfair Display", serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+.img-overlay {
+  position: relative;
+}
+
+.img-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.2) 0%,
+    transparent 100%
+  );
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.font-serif {
+  font-family: "Playfair Display", serif;
+}
+
+.font-sans {
+  font-family: "Sora", sans-serif;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: #ffffff;
+  padding: 0.625rem 1rem;
+  font-size: 1rem;
+  color: #000000;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+/* iOS Safari zooms the page when a focused form control's font-size is
+   under 16px. .input above is already safe; this catches everything else
+   (search bars, custom-styled fields) on phone-width viewports without
+   changing their desktop size. Unlayered, so it beats Tailwind's layered
+   text-sm/text-xs utilities without needing !important. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+.input::placeholder {
+  color: #616363;
+}
+
+.input:focus {
+  border-color: #000000;
+}
+
+@property --angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.orbit-glow {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Rotating conic gradient masked down to a thin ring around the border */
+.orbit-glow::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 2px;
+  background: conic-gradient(
+    from var(--angle),
+    transparent 0%,
+    transparent 60%,
+    #3b82f6 72%,
+    #eab308 80%,
+    #22c55e 88%,
+    transparent 100%
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: orbit-spin 3s linear infinite;
+  z-index: -1;
+}
+
+/* Soft ambient glow following the same rotation */
+.orbit-glow::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(
+    from var(--angle),
+    transparent 60%,
+    #3b82f6 76%,
+    #eab308 84%,
+    #22c55e 92%,
+    transparent 100%
+  );
+  filter: blur(9px);
+  opacity: 0.55;
+  animation: orbit-spin 3s linear infinite;
+  z-index: -2;
+}
+
+@keyframes orbit-spin {
+  to {
+    --angle: 360deg;
+  }
+}
+
+/* Same effect as .orbit-glow, but only active below the md breakpoint —
+   used on buttons that pick up the CTA spotlight when the header's
+   Apply Now button is hidden on small screens. */
+@media (max-width: 767px) {
+  .orbit-glow-sm {
+    position: relative;
+    isolation: isolate;
+    padding: 2px;
+  }
+
+  .orbit-glow-sm::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: conic-gradient(
+      from var(--angle),
+      transparent 0%,
+      transparent 60%,
+      #3b82f6 72%,
+      #eab308 80%,
+      #22c55e 88%,
+      transparent 100%
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    animation: orbit-spin 3s linear infinite;
+    z-index: -1;
+  }
+
+  .orbit-glow-sm::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: conic-gradient(
+      from var(--angle),
+      transparent 60%,
+      #3b82f6 76%,
+      #eab308 84%,
+      #22c55e 92%,
+      transparent 100%
+    );
+    filter: blur(9px);
+    opacity: 0.55;
+    animation: orbit-spin 3s linear infinite;
+    z-index: -2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .orbit-glow::before,
+  .orbit-glow::after {
+    animation: none;
+    --angle: 130deg;
+  }
+}

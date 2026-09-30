@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dark: #ffffff;
+  --color-darker: #f9f9f9;
+  --color-accent: #000000;
+  --color-light: #1b1b1b;
+  --color-muted: #616363;
+
+  --font-sans: "Sora", sans-serif;
+  --font-serif: "Playfair Display", serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.font-serif {
+  font-family: "Playfair Display", serif;
+}
+
+.font-sans {
+  font-family: "Sora", sans-serif;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.input {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background-color: #ffffff;
+  padding: 0.625rem 1rem;
+  font-size: 1rem;
+  color: #000000;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+/* iOS Safari zooms the page when a focused form control's font-size is
+   under 16px. .input above is already safe; this catches everything else
+   (IconField, search bars, Programs.jsx's Select/DateField) on phone-width
+   viewports without changing their desktop size. Unlayered, so it beats
+   Tailwind's layered text-sm/text-xs utilities without needing !important. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+.input::placeholder {
+  color: #616363;
+}
+
+.input:focus {
+  border-color: #000000;
+}
