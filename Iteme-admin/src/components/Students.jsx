@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
@@ -36,6 +37,8 @@ function formatDate(value) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+const DEFAULT_STUDENT_PASSWORD = '000000'
+
 function randomPassword() {
   return Math.random().toString(36).slice(-6) + Math.random().toString(36).slice(-6)
 }
@@ -49,7 +52,7 @@ function emptyStudentForm() {
     residence: '',
     education_level: '',
     bio: '',
-    password: randomPassword(),
+    password: DEFAULT_STUDENT_PASSWORD,
   }
 }
 
@@ -65,6 +68,8 @@ function emptyEnrollForm() {
 
 function Students() {
   const { user, isAdmin, isTeacher, isFinance } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
   const canEnroll = isAdmin || isTeacher
   const toast = useToast()
   const { enrollments, loading: enrollmentsLoading, refresh: refreshEnrollments } = useAllEnrollments()
@@ -148,6 +153,16 @@ function Students() {
   useEffect(() => {
     loadStudents()
   }, [])
+
+  useEffect(() => {
+    if (location.state?.openAddStudent && isAdmin) {
+      setFormError('')
+      setShowForm(true)
+      // Clear the nav state so refreshing or going back doesn't reopen it.
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only fire once on arrival, not on every navigate/isAdmin identity change
+  }, [location.state])
 
   useEffect(() => {
     const enrollmentIds = enrollments.filter((e) => e.student_id === selectedId).map((e) => e.id)
@@ -522,7 +537,7 @@ function Students() {
       {isAdmin && (
         <AnimatePresence>
           {showForm && (
-            <BottomSheet onClose={() => setShowForm(false)}>
+            <BottomSheet onClose={() => setShowForm(false)} maxWidthClassName="sm:max-w-lg">
               <h2 className="mb-1 font-serif text-2xl font-bold text-accent">New student</h2>
               <p className="mb-6 text-sm text-muted">Create a student account manually.</p>
 
@@ -1051,7 +1066,7 @@ function Students() {
 
       <AnimatePresence>
         {enrollTarget && (
-          <BottomSheet onClose={() => setEnrollTarget(null)}>
+          <BottomSheet onClose={() => setEnrollTarget(null)} maxWidthClassName="sm:max-w-lg">
             <h2 className="mb-1 font-serif text-2xl font-bold text-accent">
               Add program for {enrollTarget.full_name}
             </h2>

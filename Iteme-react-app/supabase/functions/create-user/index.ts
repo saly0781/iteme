@@ -13,6 +13,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 const ALLOWED_ROLES = ['student', 'teacher', 'accountant']
+const DEFAULT_STUDENT_PASSWORD = '000000'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,8 +78,8 @@ Deno.serve(async (req) => {
     if (!ALLOWED_ROLES.includes(role)) {
       return json({ error: `role must be one of: ${ALLOWED_ROLES.join(', ')}` }, 400)
     }
-    if (password.length < 8) {
-      return json({ error: 'Password must be at least 8 characters' }, 400)
+    if (password.length < 6) {
+      return json({ error: 'Password must be at least 6 characters' }, 400)
     }
 
     const conflictChecks = await Promise.all([
@@ -110,6 +111,7 @@ Deno.serve(async (req) => {
         residence: residence || null,
         education_level: education_level || null,
         bio: bio || null,
+        is_default_password: password === DEFAULT_STUDENT_PASSWORD,
       },
     })
 

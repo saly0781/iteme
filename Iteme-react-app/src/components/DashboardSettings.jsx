@@ -148,6 +148,11 @@ function DashboardSettings() {
       const { error } = await supabase.auth.updateUser({ password: newPassword })
       if (error) throw error
 
+      if (profile?.is_default_password) {
+        await supabase.from('profiles').update({ is_default_password: false }).eq('id', user.id)
+        await refreshProfile()
+      }
+
       setPasswordSuccess('Your password has been updated.')
       setNewPassword('')
       setConfirmPassword('')

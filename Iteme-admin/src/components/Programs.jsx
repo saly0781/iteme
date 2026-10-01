@@ -452,14 +452,14 @@ function Programs() {
 
               <SectionLabel>Dates</SectionLabel>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <DateField icon="fa-calendar" value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} placeholder="Start date" />
-                <DateField icon="fa-calendar" value={form.endDate} onChange={(v) => setForm({ ...form, endDate: v })} placeholder="End date" />
+                <DateField icon="fa-calendar" value={form.startDate} onChange={(v) => setForm({ ...form, startDate: v })} label="Start date" />
+                <DateField icon="fa-calendar" value={form.endDate} onChange={(v) => setForm({ ...form, endDate: v })} label="End date" />
               </div>
               <DateField
                 icon="fa-calendar-plus"
                 value={form.nextIntakeDate}
                 onChange={(v) => setForm({ ...form, nextIntakeDate: v })}
-                placeholder="Next intake (optional — can be left blank)"
+                label="Next intake date (optional)"
               />
 
               <SectionLabel>Schedule</SectionLabel>
@@ -622,18 +622,21 @@ function SelectField({ icon, value, onChange, options, placeholder }) {
   )
 }
 
-function DateField({ icon, value, onChange, placeholder }) {
+function DateField({ icon, value, onChange, label }) {
   return (
-    <label className="flex items-center gap-3 rounded-lg border border-black/15 bg-darker px-4 py-3">
-      <i className={`fa-solid ${icon} text-muted`}></i>
-      <input
-        type="date"
-        title={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-transparent text-sm text-accent outline-none"
-      />
-    </label>
+    <div>
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <label className="flex items-center gap-3 rounded-lg border border-black/15 bg-darker px-4 py-3">
+        <i className={`fa-solid ${icon} text-muted`}></i>
+        <input
+          type="date"
+          title={label}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-transparent text-sm text-accent outline-none"
+        />
+      </label>
+    </div>
   )
 }
 

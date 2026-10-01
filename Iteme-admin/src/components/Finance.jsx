@@ -17,6 +17,8 @@ import { useAllEnrollments } from '../hooks/useAllEnrollments'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../context/ToastContext'
 import { formatRWF } from '../data/programs'
+import { sessionLabel } from '../data/sessions'
+import logoIcon from '../assets/Iteme_logo.svg'
 import BottomSheet from './BottomSheet'
 import IconField from './IconField'
 import LoadingSpinner from './LoadingSpinner'
@@ -73,11 +75,15 @@ function Finance() {
   const [showPaymentForm, setShowPaymentForm] = useState(false)
   const [showExpenseForm, setShowExpenseForm] = useState(false)
   const [showFixedForm, setShowFixedForm] = useState(false)
+  const [receiptTarget, setReceiptTarget] = useState(null)
 
   function loadFinance() {
     setLoading(true)
     return Promise.all([
-      supabase.from('payments').select('*').order('paid_at', { ascending: false }),
+      supabase
+        .from('payments')
+        .select('*, profiles(full_name)')
+        .order('paid_at', { ascending: false }),
       supabase.from('expenses').select('*').order('spent_at', { ascending: false }),
       supabase.from('fixed_expenses').select('*').eq('active', true).order('category').order('label'),
     ]).then(([paymentsRes, expensesRes, fixedRes]) => {
@@ -216,6 +222,7 @@ function Finance() {
   const transactions = useMemo(() => {
     const paymentRows = payments.map((p) => ({
       id: `payment-${p.id}`,
+      paymentId: p.id,
       date: p.paid_at,
       type: 'in',
       label: enrollmentById.get(p.enrollment_id)?.profiles?.full_name || 'Unknown student',
@@ -260,6 +267,33 @@ function Finance() {
     setShowPaymentForm(false)
     toast.success(`Payment of ${formatRWF(Number(paymentForm.amount))} recorded.`)
     loadFinance()
+  }
+
+  function openReceipt(paymentId) {
+    const payment = payments.find((p) => p.id === paymentId)
+    if (!payment) return
+
+    const enrollment = enrollmentById.get(payment.enrollment_id)
+    const fee = Number(enrollment?.fee) || 0
+    const paidSoFar = paidByEnrollment.get(payment.enrollment_id) || 0
+
+    setReceiptTarget({
+      receiptNo: payment.id.slice(0, 8).toUpperCase(),
+      date: payment.paid_at,
+      studentName: enrollment?.profiles?.full_name || 'Unknown student',
+      programName: enrollment?.program?.name || enrollment?.program_id || '',
+      session: enrollment?.session,
+      amount: Number(payment.amount),
+      method: payment.method,
+      note: payment.note,
+      recordedBy: payment.profiles?.full_name,
+      fee,
+      paidSoFar,
+      balance: Math.max(fee - paidSoFar, 0),
+    })
+    // Let React commit the new print content before the browser snapshots
+    // the page for printing.
+    setTimeout(() => window.print(), 0)
   }
 
   async function handleAddExpense(e) {
@@ -325,6 +359,7 @@ function Finance() {
 
   return (
     <div className="px-4 py-6 md:px-8">
+      <div className="print:hidden">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-serif text-2xl font-bold text-slate-900 sm:text-3xl">Finance</h1>
@@ -822,19 +857,100 @@ function Finance() {
                     {t.sub} · {new Date(t.date).toLocaleDateString()}
                   </p>
                 </div>
-                <p
-                  className={`shrink-0 text-sm font-semibold ${
-                    t.type === 'in' ? 'text-teal-600' : 'text-red-500'
-                  }`}
-                >
-                  {t.type === 'in' ? '+' : '-'}
-                  {formatRWF(t.amount)}
-                </p>
+                <div className="flex shrink-0 items-center gap-3">
+                  <p
+                    className={`text-sm font-semibold ${
+                      t.type === 'in' ? 'text-teal-600' : 'text-red-500'
+                    }`}
+                  >
+                    {t.type === 'in' ? '+' : '-'}
+                    {formatRWF(t.amount)}
+                  </p>
+                  {t.type === 'in' && (
+                    <button
+                      type="button"
+                      onClick={() => openReceipt(t.paymentId)}
+                      aria-label="Print receipt"
+                      title="Print receipt"
+                      className="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 transition-colors hover:bg-black/5 hover:text-slate-900"
+                    >
+                      <i className="fa-solid fa-receipt text-xs"></i>
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+      </div>
+
+      {receiptTarget && (
+        <div className="hidden print:block">
+          <div className="mb-6 flex items-center justify-between border-b-2 border-black pb-4">
+            <div className="flex items-center gap-3">
+              <img src={logoIcon} alt="" className="h-12 w-12 object-contain" />
+              <div>
+                <p className="font-serif text-lg font-bold text-black">ITEME HUB</p>
+                <p className="text-xs uppercase tracking-wide text-black/60">Payment Receipt</p>
+              </div>
+            </div>
+            <div className="text-right text-xs text-black/60">
+              <p>Receipt No. {receiptTarget.receiptNo}</p>
+              <p>{new Date(receiptTarget.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            </div>
+          </div>
+
+          <div className="space-y-4 text-sm text-black">
+            <ReceiptRow label="Received From" value={receiptTarget.studentName} />
+            <ReceiptRow
+              label="For"
+              value={`${receiptTarget.programName}${receiptTarget.session ? ` · ${sessionLabel(receiptTarget.session)} session` : ''}`}
+            />
+            <ReceiptRow label="Payment Method" value={receiptTarget.method.replace('_', ' ')} />
+            {receiptTarget.note && <ReceiptRow label="Note" value={receiptTarget.note} />}
+            {receiptTarget.recordedBy && <ReceiptRow label="Recorded By" value={receiptTarget.recordedBy} />}
+
+            <div className="mt-4 flex items-center justify-between border-y-2 border-black py-4">
+              <p className="font-serif text-lg font-bold text-black">Amount Paid</p>
+              <p className="font-serif text-2xl font-bold text-black">{formatRWF(receiptTarget.amount)}</p>
+            </div>
+
+            {receiptTarget.fee > 0 && (
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="font-semibold text-black">{formatRWF(receiptTarget.fee)}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-black/50">Total Fee</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-black">{formatRWF(receiptTarget.paidSoFar)}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-black/50">Paid to Date</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-black">{formatRWF(receiptTarget.balance)}</p>
+                  <p className="text-[10px] uppercase tracking-wide text-black/50">Balance Owing</p>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-end justify-between pt-10">
+              <div className="w-56 border-t border-black pt-1 text-xs text-black/60">
+                Finance office signature
+              </div>
+              <p className="text-xs text-black/40">Thank you for your payment.</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ReceiptRow({ label, value }) {
+  return (
+    <div className="flex items-center justify-between border-b border-black/20 pb-2">
+      <span className="font-semibold text-black">{label}</span>
+      <span className="capitalize text-black/80">{value}</span>
     </div>
   )
 }

@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { usePrograms } from '../hooks/usePrograms'
 import { supabase } from '../lib/supabase'
-import { SESSION_TYPES } from '../data/sessions'
+import { SESSION_TYPES, sessionLabel } from '../data/sessions'
+import logoIcon from '../assets/Iteme_logo.svg'
 import LoadingSpinner from './LoadingSpinner'
 
 const statusOptions = [
@@ -14,6 +15,27 @@ const statusOptions = [
 
 function todayISO() {
   return new Date().toISOString().slice(0, 10)
+}
+
+// Quoted/escaped per RFC 4180 so names or topics containing commas, quotes,
+// or newlines don't break the column structure when opened in Excel.
+function csvCell(value) {
+  const str = String(value ?? '')
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str
+}
+
+function downloadCsv(filename, rows) {
+  const csv = rows.map((row) => row.map(csvCell).join(',')).join('\r\n')
+  // Leading BOM so Excel detects UTF-8 instead of mangling accented names.
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
 }
 
 function Attendance() {
@@ -52,7 +74,7 @@ function Attendance() {
 
       const { data: enrolled, error: enrolledError } = await supabase
         .from('enrollments')
-        .select('student_id, profiles(full_name, email)')
+        .select('student_id, profiles(full_name, email, student_code)')
         .eq('program_id', pid)
         .eq('session', session)
         .eq('status', 'active')
@@ -75,6 +97,7 @@ function Attendance() {
           studentId: row.student_id,
           name: row.profiles?.full_name || 'Unknown student',
           email: row.profiles?.email,
+          studentCode: row.profiles?.student_code || '',
           status: existingByStudent[row.student_id]?.status || 'unmarked',
         }))
       )
@@ -118,6 +141,24 @@ function Attendance() {
 
   const selectedProgram = programs.find((p) => p.id === programId)
 
+  function exportRosterToExcel() {
+    const programName = selectedProgram?.name || programId
+    const rows = [
+      [`${programName} — ${sessionLabel(session)} — ${date}${topic ? ` — ${topic}` : ''}`],
+      [],
+      ['#', 'Full Name', 'Student ID', 'Email', 'Status', 'Signature'],
+      ...roster.map((s, i) => [
+        i + 1,
+        s.name,
+        s.studentCode,
+        s.email || '',
+        s.status === 'unmarked' ? '' : s.status[0].toUpperCase() + s.status.slice(1),
+        '',
+      ]),
+    ]
+    downloadCsv(`attendance-${programId}-${session}-${date}.csv`, rows)
+  }
+
   if (programsLoading) {
     return (
       <div className="flex justify-center py-24">
@@ -128,12 +169,12 @@ function Attendance() {
 
   return (
     <div className="px-4 py-6 md:px-8">
-      <div className="mb-6">
+      <div className="mb-6 print:hidden">
         <h1 className="font-serif text-2xl font-bold text-slate-900 sm:text-3xl">Attendance</h1>
         <p className="text-sm text-slate-500">Pick a class to mark who showed up.</p>
       </div>
 
-      <div className="mb-6 grid grid-cols-1 gap-4 rounded-3xl bg-[#F4F4F6] p-5 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-1 gap-4 rounded-3xl bg-[#F4F4F6] p-5 sm:grid-cols-4 print:hidden">
         <Field label="Program">
           <select
             value={programId}
@@ -180,7 +221,7 @@ function Attendance() {
         <div className="sm:col-span-4">
           <button
             type="button"
-            onClick={loadRoster}
+            onClick={() => loadRoster()}
             disabled={!programId || loading}
             className="rounded-full bg-accent px-6 py-2.5 text-sm font-semibold text-white transition-transform hover:scale-105 disabled:opacity-60"
           >
@@ -189,48 +230,132 @@ function Attendance() {
         </div>
       </div>
 
-      {error && <p className="mb-4 text-sm font-medium text-red-600">{error}</p>}
+      {error && <p className="mb-4 text-sm font-medium text-red-600 print:hidden">{error}</p>}
 
       {loading ? (
-        <div className="flex justify-center py-16">
+        <div className="flex justify-center py-16 print:hidden">
           <LoadingSpinner />
         </div>
       ) : roster.length === 0 ? (
-        <p className="py-16 text-center text-sm text-slate-400">
+        <p className="py-16 text-center text-sm text-slate-400 print:hidden">
           No approved students enrolled in {selectedProgram?.name || 'this program'}'s {session}{' '}
           session yet.
         </p>
       ) : (
-        <div className="space-y-3">
-          {roster.map((s) => (
-            <div
-              key={s.studentId}
-              className="flex flex-col gap-3 rounded-3xl bg-[#F4F4F6] p-4 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-slate-900">{s.name}</p>
-                <p className="truncate text-xs text-slate-400">{s.email}</p>
-              </div>
-
-              <div className="flex shrink-0 items-center gap-2">
-                {statusOptions.map((opt) => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => markStudent(s.studentId, opt.value)}
-                    className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
-                      s.status === opt.value
-                        ? opt.className
-                        : 'border border-black/15 text-slate-500 hover:border-black/30'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+        <>
+          <div className="space-y-3 print:hidden">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                {roster.length} student{roster.length === 1 ? '' : 's'}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex items-center gap-2 rounded-full border border-black/15 px-4 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-black/30"
+                  title="Print a blank sheet to mark attendance by hand"
+                >
+                  <i className="fa-solid fa-print"></i>
+                  Print
+                </button>
+                <button
+                  type="button"
+                  onClick={exportRosterToExcel}
+                  className="flex items-center gap-2 rounded-full border border-black/15 px-4 py-2 text-xs font-semibold text-slate-700 transition-colors hover:border-black/30"
+                  title="Download as a spreadsheet to print and mark attendance by hand"
+                >
+                  <i className="fa-solid fa-file-excel"></i>
+                  Export to Excel
+                </button>
               </div>
             </div>
-          ))}
-        </div>
+
+            {roster.map((s) => (
+              <div
+                key={s.studentId}
+                className="flex flex-col gap-3 rounded-3xl bg-[#F4F4F6] p-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-slate-900">{s.name}</p>
+                  <p className="truncate text-xs text-slate-400">{s.email}</p>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-2">
+                  {statusOptions.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => markStudent(s.studentId, opt.value)}
+                      className={`rounded-full px-4 py-2 text-xs font-semibold transition-colors ${
+                        s.status === opt.value
+                          ? opt.className
+                          : 'border border-black/15 text-slate-500 hover:border-black/30'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Print-only view — the interactive roster above is hidden via
+              print:hidden; this is hidden on screen and only shown by the
+              browser's print stylesheet. */}
+          <div className="hidden print:block">
+            <div className="mb-6 flex items-center justify-between border-b-2 border-black pb-4">
+              <div className="flex items-center gap-3">
+                <img src={logoIcon} alt="" className="h-12 w-12 object-contain" />
+                <div>
+                  <p className="font-serif text-lg font-bold text-black">ITEME HUB</p>
+                  <p className="text-xs uppercase tracking-wide text-black/60">Attendance Sheet</p>
+                </div>
+              </div>
+              <p className="text-xs text-black/60">Generated {new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+            </div>
+
+            <h1 className="mb-1 font-serif text-xl font-bold text-black">
+              {selectedProgram?.name || programId}
+            </h1>
+            <p className="mb-5 text-sm text-black/70">
+              {sessionLabel(session)} session · {new Date(date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+              {topic ? ` · ${topic}` : ''}
+            </p>
+
+            <table className="w-full border-collapse text-sm text-black">
+              <thead>
+                <tr className="bg-black/5">
+                  <th className="border border-black/40 px-3 py-2 text-left font-semibold">#</th>
+                  <th className="border border-black/40 px-3 py-2 text-left font-semibold">Full Name</th>
+                  <th className="border border-black/40 px-3 py-2 text-left font-semibold">Student ID</th>
+                  <th className="border border-black/40 px-3 py-2 text-left font-semibold">Status</th>
+                  <th className="border border-black/40 px-3 py-2 text-left font-semibold">Signature</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roster.map((s, i) => (
+                  <tr key={s.studentId} className={i % 2 === 1 ? 'bg-black/[0.03]' : ''}>
+                    <td className="border border-black/40 px-3 py-2.5">{i + 1}</td>
+                    <td className="border border-black/40 px-3 py-2.5">{s.name}</td>
+                    <td className="border border-black/40 px-3 py-2.5 font-mono">{s.studentCode}</td>
+                    <td className="border border-black/40 px-3 py-2.5">
+                      {s.status === 'unmarked' ? '' : s.status[0].toUpperCase() + s.status.slice(1)}
+                    </td>
+                    <td className="border border-black/40 px-3 py-2.5"></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="mt-10 flex items-end justify-between text-sm text-black">
+              <div className="w-56 border-t border-black pt-1 text-xs text-black/60">
+                Teacher's signature
+              </div>
+              <p className="text-xs text-black/40">{roster.length} students</p>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

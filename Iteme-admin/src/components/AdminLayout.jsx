@@ -58,7 +58,7 @@ function AdminLayout() {
     <div className="min-h-screen bg-white">
       <div className="flex flex-col lg:h-screen lg:flex-row lg:overflow-hidden">
         {/* Sidebar (desktop) */}
-        <aside className="hidden shrink-0 flex-col overflow-y-auto rounded-3xl bg-black px-5 py-8 text-white lg:my-2 lg:ml-2 lg:flex lg:w-60">
+        <aside className="hidden shrink-0 flex-col overflow-y-auto rounded-3xl bg-black px-5 py-8 text-white lg:my-2 lg:ml-2 lg:flex lg:w-60 print:hidden">
           <Link to="/" className="mb-10 flex items-center gap-2 px-2">
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white p-1 shadow-sm">
               <img src={logoIcon} alt="Iteme Hub" className="h-full w-full object-contain" />
@@ -95,7 +95,7 @@ function AdminLayout() {
 
         <div className="flex min-w-0 flex-1 flex-col lg:overflow-hidden">
           {/* Top bar (desktop) */}
-          <div className="hidden items-center gap-4 border-b border-black/5 px-8 py-5 lg:flex">
+          <div className="hidden items-center gap-4 border-b border-black/5 px-8 py-5 lg:flex print:hidden">
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
               {profile?.role || 'staff'}
             </span>
@@ -129,7 +129,7 @@ function AdminLayout() {
           </div>
 
           {/* Top bar (mobile) */}
-          <div className="flex items-center justify-between px-4 py-3 lg:hidden">
+          <div className="flex items-center justify-between px-4 py-3 lg:hidden print:hidden">
             <Link to="/" className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white p-1 shadow-sm">
                 <img src={logoIcon} alt="Iteme Hub" className="h-full w-full object-contain" />
@@ -167,7 +167,7 @@ function AdminLayout() {
       </div>
 
       {/* Bottom tab bar (mobile) */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center border-t border-black/5 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur-md lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center border-t border-black/5 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_16px_rgba(0,0,0,0.06)] backdrop-blur-md lg:hidden print:hidden">
         {bottomTabs.map((item) => (
           <BottomNavLink
             key={item.label}

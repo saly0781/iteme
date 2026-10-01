@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { useEnrollments } from '../hooks/useEnrollments'
@@ -62,6 +63,7 @@ function DashboardHome() {
   const [openColorFor, setOpenColorFor] = useState(null)
   const [showAllEnrollments, setShowAllEnrollments] = useState(false)
   const [removeTarget, setRemoveTarget] = useState(null)
+  const [dismissedPasswordPrompt, setDismissedPasswordPrompt] = useState(false)
   const [removing, setRemoving] = useState(false)
   const [removeError, setRemoveError] = useState('')
   const scrollerRef = useRef(null)
@@ -232,6 +234,37 @@ function DashboardHome() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
         {/* ── Left column ─────────────────────────────────────────── */}
         <div className="min-w-0">
+          {/* Default password prompt — dismissible, not forced */}
+          {profile?.is_default_password && !dismissedPasswordPrompt && (
+            <div className="mb-6 flex items-start gap-3 rounded-3xl bg-amber-50 p-4 sm:p-5">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                <i className="fa-solid fa-lock"></i>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-slate-900">
+                  You're still using the password your account was created with.
+                </p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  For security, consider setting your own password in Settings.
+                </p>
+                <Link
+                  to="/dashboard/settings"
+                  className="mt-2 inline-block text-xs font-semibold text-accent underline underline-offset-4"
+                >
+                  Go to Settings
+                </Link>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDismissedPasswordPrompt(true)}
+                aria-label="Dismiss"
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-amber-500 transition-colors hover:bg-amber-100"
+              >
+                <i className="fa-solid fa-xmark text-xs"></i>
+              </button>
+            </div>
+          )}
+
           {/* Notifications */}
           {notifications.length > 0 && (
             <div className="mb-6 space-y-3">
